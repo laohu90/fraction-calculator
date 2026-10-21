@@ -968,8 +968,8 @@ export function getBrowserLanguageInfo(): BrowserDetectionResult {
 /**
  * Resolves the active language based on priority:
  * 1. URL search param ?lang= (top priority for direct links and SEO)
- * 2. User manual selection in localStorage ('fraction_calc_manual_lang')
- * 3. Browser auto-detection (es, fr, pt, zh) with strict default to 'en'
+ * 2. User explicit manual selection in localStorage ('fraction_calc_user_chosen_lang_v3')
+ * 3. Default fallback: STRICTLY English ('en') for Google SEO & global access
  */
 export function resolveInitialLanguage(): {
   lang: SupportedLang;
@@ -988,7 +988,13 @@ export function resolveInitialLanguage(): {
     };
   }
 
-  // 1. URL search param
+  // Clear legacy storage keys that cached 'zh' in earlier sessions
+  try {
+    localStorage.removeItem('fraction_calc_lang');
+    localStorage.removeItem('fraction_calc_manual_lang');
+  } catch {}
+
+  // 1. URL search param ?lang= (top priority: allows direct access to /?lang=zh, /?lang=es, etc.)
   try {
     const params = new URLSearchParams(window.location.search);
     const pLang = params.get('lang') as SupportedLang;
@@ -1004,9 +1010,9 @@ export function resolveInitialLanguage(): {
     // fallback
   }
 
-  // 2. Explicit manual selection
+  // 2. Explicit user manual selection saved in v3 localStorage
   try {
-    const manual = localStorage.getItem('fraction_calc_manual_lang') as SupportedLang;
+    const manual = localStorage.getItem('fraction_calc_user_chosen_lang_v3') as SupportedLang;
     if (manual && ['en', 'es', 'fr', 'pt', 'zh'].includes(manual)) {
       return {
         lang: manual,
@@ -1019,9 +1025,10 @@ export function resolveInitialLanguage(): {
     // fallback
   }
 
-  // 3. Browser auto-detection with default English
+  // 3. Strict default is English ('en')
+  // Root URL / visits must ALWAYS default to English ('en') for Google indexing and international visitors.
   return {
-    lang: browserInfo.detected,
+    lang: 'en',
     isAuto: true,
     detectedLang: browserInfo.detected,
     rawLocale: browserInfo.rawLocale,

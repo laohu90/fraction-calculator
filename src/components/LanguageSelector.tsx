@@ -139,7 +139,7 @@ export const LanguageSelector: React.FC<LanguageSelectorProps> = ({
             })}
           </div>
 
-          {/* Auto-detect Reset Action */}
+          {/* Default English Reset Action */}
           <div className="p-1.5 border-t border-slate-100 dark:border-slate-800/80 mt-1 bg-slate-50/70 dark:bg-slate-800/40 rounded-b-lg">
             <button
               type="button"
@@ -147,23 +147,22 @@ export const LanguageSelector: React.FC<LanguageSelectorProps> = ({
                 onResetAuto();
                 setIsOpen(false);
               }}
-              className={`w-full flex items-start gap-2 p-1.5 rounded-lg text-left transition-colors ${
-                isAuto
-                  ? 'bg-indigo-50/70 dark:bg-indigo-950/40 text-indigo-700 dark:text-indigo-300 border border-indigo-200/80 dark:border-indigo-800/60'
-                  : 'text-slate-600 dark:text-slate-300 hover:bg-white dark:hover:bg-slate-800 hover:shadow-2xs'
-              }`}
+              className="w-full flex items-center justify-between p-1.5 rounded-lg text-left transition-colors hover:bg-white dark:hover:bg-slate-800 text-slate-700 dark:text-slate-200"
             >
-              <Monitor className="w-3.5 h-3.5 text-indigo-500 shrink-0 mt-0.5" />
-              <div className="text-[11px] leading-tight">
-                <div className="font-semibold flex items-center gap-1">
-                  <span>Browser Auto-Detect</span>
-                  {isAuto && <span className="text-[9px] text-indigo-600 font-bold">(Active)</span>}
-                </div>
-                <div className="text-[10px] text-slate-400 dark:text-slate-500 font-normal mt-0.5">
-                  Detected: <span className="font-mono text-slate-600 dark:text-slate-300">{browserInfo.rawLocale}</span> →{' '}
-                  <span className="font-semibold text-indigo-600 dark:text-indigo-400 uppercase">{browserInfo.detected}</span> (Default: EN)
+              <div className="flex items-center gap-2">
+                <Globe className="w-3.5 h-3.5 text-indigo-600 shrink-0" />
+                <div className="text-[11px] leading-tight">
+                  <div className="font-semibold text-slate-800 dark:text-slate-200">
+                    Default: <span className="text-indigo-600 dark:text-indigo-400">English (EN)</span>
+                  </div>
+                  <div className="text-[10px] text-slate-400 font-normal">
+                    Standard Google SEO indexing language
+                  </div>
                 </div>
               </div>
+              <span className="text-[10px] text-indigo-600 dark:text-indigo-400 font-semibold bg-indigo-50 dark:bg-indigo-950/60 px-1.5 py-0.5 rounded border border-indigo-200/60 dark:border-indigo-800">
+                Reset
+              </span>
             </button>
           </div>
         </div>

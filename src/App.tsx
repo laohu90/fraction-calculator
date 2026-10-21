@@ -78,8 +78,9 @@ export default function App() {
   const handleSelectLang = (newLang: SupportedLang) => {
     setLangState({ currentLang: newLang, isAuto: false });
     try {
-      localStorage.setItem('fraction_calc_manual_lang', newLang);
-      localStorage.setItem('fraction_calc_lang', newLang);
+      localStorage.setItem('fraction_calc_user_chosen_lang_v3', newLang);
+      localStorage.removeItem('fraction_calc_manual_lang');
+      localStorage.removeItem('fraction_calc_lang');
     } catch {}
     document.documentElement.lang = newLang;
     const url = new URL(window.location.href);
@@ -89,12 +90,13 @@ export default function App() {
 
   const handleResetAuto = () => {
     try {
+      localStorage.removeItem('fraction_calc_user_chosen_lang_v3');
       localStorage.removeItem('fraction_calc_manual_lang');
       localStorage.removeItem('fraction_calc_lang');
     } catch {}
-    const browserInfo = getBrowserLanguageInfo();
-    setLangState({ currentLang: browserInfo.detected, isAuto: true });
-    document.documentElement.lang = browserInfo.detected;
+    // Reset to default English ('en')
+    setLangState({ currentLang: 'en', isAuto: true });
+    document.documentElement.lang = 'en';
     const url = new URL(window.location.href);
     url.searchParams.delete('lang');
     window.history.pushState({}, '', url.pathname + (url.hash || ''));
