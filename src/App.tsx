@@ -19,6 +19,7 @@ import { FractionSimplifierTab } from './components/FractionSimplifierTab';
 import { FractionCompareTab } from './components/FractionCompareTab';
 import { DecimalToFractionTab } from './components/DecimalToFractionTab';
 import { LanguageSelector } from './components/LanguageSelector';
+import { GeoIpBanner } from './components/GeoIpBanner';
 import {
   translations,
   SupportedLang,
@@ -354,6 +355,12 @@ export default function App() {
 
   return (
     <div className="min-h-screen bg-slate-100/70 dark:bg-slate-950 text-slate-800 dark:text-slate-100 flex flex-col font-sans selection:bg-indigo-500/20 selection:text-indigo-600">
+      {/* Smart Non-intrusive IP Geo-location Language Suggestion Banner */}
+      <GeoIpBanner
+        currentLang={currentLang}
+        onSwitchLang={handleSelectLang}
+      />
+
       {/* Top Bar Contract: Brand zone - Nav links - Primary action */}
       <header className="sticky top-0 z-30 bg-white/95 dark:bg-slate-900/95 backdrop-blur-md border-b border-slate-200/80 dark:border-slate-800">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 h-14 flex items-center justify-between gap-8">
