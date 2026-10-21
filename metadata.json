@@ -1,0 +1,6 @@
+{
+  "name": "Fraction Calculator - Step-by-Step Fraction Arithmetic & Learning Platform",
+  "description": "Free multi-language fraction calculator for adding, subtracting, multiplying, dividing, simplifying fractions, and mixed numbers with step-by-step solutions, visual diagrams, and homework practice.",
+  "requestFramePermissions": [],
+  "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
+}
