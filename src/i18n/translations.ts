@@ -923,21 +923,112 @@ export const translations: Record<SupportedLang, TranslationDict> = {
   },
 };
 
-// Auto-detect language with default 'en'
-export function detectUserLanguage(): SupportedLang {
-  if (typeof window === 'undefined') return 'en';
+export interface BrowserDetectionResult {
+  detected: SupportedLang;
+  rawLocale: string;
+  source: 'browser' | 'default';
+}
 
-  const saved = localStorage.getItem('fraction_calc_lang') as SupportedLang;
-  if (saved && ['en', 'es', 'fr', 'pt', 'zh'].includes(saved)) {
-    return saved;
+/**
+ * Inspects all browser preferences (navigator.languages and navigator.language)
+ * Supports: es, fr, pt, zh.
+ * Defaults strictly to 'en' (English) for all others and search crawlers.
+ */
+export function getBrowserLanguageInfo(): BrowserDetectionResult {
+  if (typeof window === 'undefined') {
+    return { detected: 'en', rawLocale: 'en', source: 'default' };
   }
 
-  const browserLang = (navigator.language || (navigator as any).userLanguage || 'en').toLowerCase();
+  const rawList: string[] = [];
+  if (Array.isArray(navigator.languages) && navigator.languages.length > 0) {
+    rawList.push(...navigator.languages);
+  }
+  if (navigator.language) {
+    rawList.push(navigator.language);
+  }
+  if ((navigator as any).userLanguage) {
+    rawList.push((navigator as any).userLanguage);
+  }
 
-  if (browserLang.startsWith('zh')) return 'zh';
-  if (browserLang.startsWith('es')) return 'es';
-  if (browserLang.startsWith('fr')) return 'fr';
-  if (browserLang.startsWith('pt')) return 'pt';
+  const primaryRaw = rawList[0] || 'en';
 
-  return 'en'; // default English
+  for (const raw of rawList) {
+    const l = raw.toLowerCase().trim();
+    if (l.startsWith('zh')) return { detected: 'zh', rawLocale: primaryRaw, source: 'browser' };
+    if (l.startsWith('es')) return { detected: 'es', rawLocale: primaryRaw, source: 'browser' };
+    if (l.startsWith('fr')) return { detected: 'fr', rawLocale: primaryRaw, source: 'browser' };
+    if (l.startsWith('pt')) return { detected: 'pt', rawLocale: primaryRaw, source: 'browser' };
+    if (l.startsWith('en')) return { detected: 'en', rawLocale: primaryRaw, source: 'browser' };
+  }
+
+  // Any other language (de, ja, ko, ru, etc.) defaults to English
+  return { detected: 'en', rawLocale: primaryRaw, source: 'default' };
+}
+
+/**
+ * Resolves the active language based on priority:
+ * 1. URL search param ?lang= (top priority for direct links and SEO)
+ * 2. User manual selection in localStorage ('fraction_calc_manual_lang')
+ * 3. Browser auto-detection (es, fr, pt, zh) with strict default to 'en'
+ */
+export function resolveInitialLanguage(): {
+  lang: SupportedLang;
+  isAuto: boolean;
+  detectedLang: SupportedLang;
+  rawLocale: string;
+} {
+  const browserInfo = getBrowserLanguageInfo();
+
+  if (typeof window === 'undefined') {
+    return {
+      lang: 'en',
+      isAuto: true,
+      detectedLang: 'en',
+      rawLocale: 'en',
+    };
+  }
+
+  // 1. URL search param
+  try {
+    const params = new URLSearchParams(window.location.search);
+    const pLang = params.get('lang') as SupportedLang;
+    if (pLang && ['en', 'es', 'fr', 'pt', 'zh'].includes(pLang)) {
+      return {
+        lang: pLang,
+        isAuto: false,
+        detectedLang: browserInfo.detected,
+        rawLocale: browserInfo.rawLocale,
+      };
+    }
+  } catch {
+    // fallback
+  }
+
+  // 2. Explicit manual selection
+  try {
+    const manual = localStorage.getItem('fraction_calc_manual_lang') as SupportedLang;
+    if (manual && ['en', 'es', 'fr', 'pt', 'zh'].includes(manual)) {
+      return {
+        lang: manual,
+        isAuto: false,
+        detectedLang: browserInfo.detected,
+        rawLocale: browserInfo.rawLocale,
+      };
+    }
+  } catch {
+    // fallback
+  }
+
+  // 3. Browser auto-detection with default English
+  return {
+    lang: browserInfo.detected,
+    isAuto: true,
+    detectedLang: browserInfo.detected,
+    rawLocale: browserInfo.rawLocale,
+  };
+}
+
+// Deprecated backward-compatible wrapper
+export function detectUserLanguage(): SupportedLang {
+  return resolveInitialLanguage().lang;
 }

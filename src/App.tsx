@@ -19,7 +19,12 @@ import { FractionSimplifierTab } from './components/FractionSimplifierTab';
 import { FractionCompareTab } from './components/FractionCompareTab';
 import { DecimalToFractionTab } from './components/DecimalToFractionTab';
 import { LanguageSelector } from './components/LanguageSelector';
-import { translations, SupportedLang, detectUserLanguage } from './i18n/translations';
+import {
+  translations,
+  SupportedLang,
+  resolveInitialLanguage,
+  getBrowserLanguageInfo,
+} from './i18n/translations';
 import { PracticeQuizTab } from './components/PracticeQuizTab';
 import { FractionTutorial } from './components/FractionTutorial';
 import { SeoTopicHub } from './components/SeoTopicHub';
@@ -59,26 +64,40 @@ interface HistoryItem {
 }
 
 export default function App() {
-  const [currentLang, setCurrentLang] = useState<SupportedLang>(() => {
-    if (typeof window !== 'undefined') {
-      const params = new URLSearchParams(window.location.search);
-      const pLang = params.get('lang') as SupportedLang;
-      if (pLang && ['en', 'es', 'fr', 'pt', 'zh'].includes(pLang)) {
-        return pLang;
-      }
-    }
-    return detectUserLanguage();
+  const [langState, setLangState] = useState<{
+    currentLang: SupportedLang;
+    isAuto: boolean;
+  }>(() => {
+    const init = resolveInitialLanguage();
+    return { currentLang: init.lang, isAuto: init.isAuto };
   });
 
+  const { currentLang, isAuto } = langState;
   const t = translations[currentLang];
 
   const handleSelectLang = (newLang: SupportedLang) => {
-    setCurrentLang(newLang);
-    localStorage.setItem('fraction_calc_lang', newLang);
+    setLangState({ currentLang: newLang, isAuto: false });
+    try {
+      localStorage.setItem('fraction_calc_manual_lang', newLang);
+      localStorage.setItem('fraction_calc_lang', newLang);
+    } catch {}
     document.documentElement.lang = newLang;
     const url = new URL(window.location.href);
     url.searchParams.set('lang', newLang);
     window.history.pushState({}, '', url.toString());
+  };
+
+  const handleResetAuto = () => {
+    try {
+      localStorage.removeItem('fraction_calc_manual_lang');
+      localStorage.removeItem('fraction_calc_lang');
+    } catch {}
+    const browserInfo = getBrowserLanguageInfo();
+    setLangState({ currentLang: browserInfo.detected, isAuto: true });
+    document.documentElement.lang = browserInfo.detected;
+    const url = new URL(window.location.href);
+    url.searchParams.delete('lang');
+    window.history.pushState({}, '', url.pathname + (url.hash || ''));
   };
 
   useEffect(() => {
@@ -88,11 +107,8 @@ export default function App() {
 
   useEffect(() => {
     const onPopState = () => {
-      const params = new URLSearchParams(window.location.search);
-      const pLang = params.get('lang') as SupportedLang;
-      if (pLang && ['en', 'es', 'fr', 'pt', 'zh'].includes(pLang)) {
-        setCurrentLang(pLang);
-      }
+      const init = resolveInitialLanguage();
+      setLangState({ currentLang: init.lang, isAuto: init.isAuto });
     };
     window.addEventListener('popstate', onPopState);
     return () => window.removeEventListener('popstate', onPopState);
@@ -410,15 +426,17 @@ export default function App() {
           </nav>
 
           {/* Zone 3: 1 primary action + Language Selector */}
-          <div className="flex items-center gap-2.5 shrink-0">
+          <div className="flex items-center gap-2 shrink-0">
             <LanguageSelector
               currentLang={currentLang}
+              isAuto={isAuto}
               onSelectLang={handleSelectLang}
+              onResetAuto={handleResetAuto}
             />
             <button
               type="button"
               onClick={handlePrint}
-              className="inline-flex items-center gap-1.5 px-3 py-1.5 text-xs font-medium text-white bg-indigo-600 hover:bg-indigo-700 rounded-lg transition-colors whitespace-nowrap shrink-0 shadow-xs"
+              className="inline-flex items-center gap-1.5 h-8 px-2.5 sm:px-3 text-xs font-semibold text-white bg-indigo-600 hover:bg-indigo-700 active:bg-indigo-800 rounded-lg transition-colors whitespace-nowrap shrink-0 shadow-xs"
               title="Print worksheet solution"
             >
               <Printer className="w-3.5 h-3.5" />
@@ -1026,14 +1044,38 @@ export default function App() {
       </main>
 
       {/* Footer */}
-      <footer className="border-t border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 py-4 mt-8 text-center text-xs text-slate-500">
-        <div className="max-w-7xl mx-auto px-4 flex flex-col sm:flex-row items-center justify-between gap-3">
+      <footer className="border-t border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 py-5 mt-8 text-center text-xs text-slate-500">
+        <div className="max-w-7xl mx-auto px-4 flex flex-col md:flex-row items-center justify-between gap-3">
           <p>{t.footer}</p>
-          <div className="flex items-center gap-4 text-xs">
-            <button onClick={() => setActiveMode('arithmetic')} className="hover:underline">{t.nav.calculator}</button>
-            <button onClick={() => setActiveMode('multiterm')} className="hover:underline">{t.nav.multiterm}</button>
-            <button onClick={() => setActiveMode('simplify')} className="hover:underline">{t.nav.simplify}</button>
-            <button onClick={() => setActiveMode('compare')} className="hover:underline">{t.nav.compare}</button>
+          <div className="flex flex-wrap items-center justify-center gap-3 text-xs">
+            <div className="flex items-center gap-1.5 text-slate-400">
+              <span className="font-semibold text-slate-500 dark:text-slate-400">Languages:</span>
+              {(['en', 'es', 'fr', 'pt', 'zh'] as SupportedLang[]).map((lCode) => (
+                <button
+                  key={lCode}
+                  type="button"
+                  onClick={() => handleSelectLang(lCode)}
+                  className={`px-1.5 py-0.5 rounded transition-colors ${
+                    currentLang === lCode
+                      ? 'bg-indigo-50 text-indigo-700 font-bold dark:bg-indigo-950 dark:text-indigo-400'
+                      : 'hover:text-slate-800 dark:hover:text-slate-200'
+                  }`}
+                >
+                  {lCode === 'en' && 'English'}
+                  {lCode === 'es' && 'Español'}
+                  {lCode === 'fr' && 'Français'}
+                  {lCode === 'pt' && 'Português'}
+                  {lCode === 'zh' && '中文'}
+                </button>
+              ))}
+            </div>
+            <span className="text-slate-300 dark:text-slate-700 hidden sm:inline">|</span>
+            <div className="flex items-center gap-3">
+              <button onClick={() => { setActiveMode('arithmetic'); window.scrollTo({ top: 0, behavior: 'smooth' }); }} className="hover:underline">{t.nav.calculator}</button>
+              <button onClick={() => { setActiveMode('multiterm'); window.scrollTo({ top: 0, behavior: 'smooth' }); }} className="hover:underline">{t.nav.multiterm}</button>
+              <button onClick={() => { setActiveMode('simplify'); window.scrollTo({ top: 0, behavior: 'smooth' }); }} className="hover:underline">{t.nav.simplify}</button>
+              <button onClick={() => { setActiveMode('compare'); window.scrollTo({ top: 0, behavior: 'smooth' }); }} className="hover:underline">{t.nav.compare}</button>
+            </div>
           </div>
         </div>
       </footer>
